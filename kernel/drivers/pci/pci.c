@@ -87,12 +87,10 @@ void* pci_check_function(uint8_t bus, uint8_t device, uint8_t function)
 	// Get device ID
 	uint16_t deviceID = (__pci_config_read_dword(bus, device, function,0) >> 16);
 	// Get Device Class
-	uint8_t pciClass = (uint8_t)(__pci_config_read_word(bus, device, function , 0xA)>>8);
-	// Get Device SubClass
-	uint8_t subClass = (uint8_t)__pci_config_read_word(bus,device, function, 0xB);
-	// Get ProgIF
-	uint8_t progIF = (uint8_t)(__pci_config_read_word(bus, device, function,0xC)>>8);
-	// Set up the meta-data
+	uint8_t pciClass = (uint8_t)(__pci_config_read_word(bus, device, function, 0xA)>>8);
+	uint8_t subClass = (uint8_t)__pci_config_read_word(bus, device, function, 0xA);
+	uint8_t progIF = (uint8_t)(__pci_config_read_word(bus, device, function, 0x8)>>8);
+	// Set up the metadata
 	struct pci_device* dev = malloc(sizeof(struct pci_device));
 	if(!dev)
 		panic("pci: early unrecoverable oom\n");
@@ -129,10 +127,9 @@ void pci_check_devices()
 			// Get header type
 			uint16_t header = (uint16_t)(__pci_config_read_word(slot, device, 0,0xE));
 
-			uint8_t pciClass = (uint8_t)(__pci_config_read_word(slot, device, 0 , 0xA)>>8);
-			uint8_t subClass = (uint8_t)__pci_config_read_word(slot,device, 0, 0xB);
-			uint8_t progIF = (uint8_t)(__pci_config_read_word(slot, device, 0,0xC)>>8);
-
+			uint8_t pciClass = (uint8_t)(__pci_config_read_word(slot, device, 0, 0xA)>>8);
+			uint8_t subClass = (uint8_t)__pci_config_read_word(slot,device, 0, 0xA);
+			uint8_t progIF = (uint8_t)(__pci_config_read_word(slot, device, 0, 0x8)>>8);
 			// Set up some meta-data
 			struct pci_device* dev = malloc(sizeof(struct pci_device));
 			if(!dev)

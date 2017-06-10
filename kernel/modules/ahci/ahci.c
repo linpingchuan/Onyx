@@ -19,7 +19,7 @@ MODULE_AUTHOR("Pedro Falcato");
 MODULE_LICENSE(MODULE_LICENSE_MIT);
 MODULE_INSERT_VERSION();
 
-#define MPRINTF(...) printf("ahci: "__VA_ARGS__)
+#define MPRINTF(...) printk("ahci: "__VA_ARGS__)
 
 static struct pci_device *ahci_dev = NULL;
 static ahci_hba_memory_regs_t *hba = NULL;
@@ -68,7 +68,7 @@ void ahci_probe_ports(int n_ports)
 int module_init()
 {
 	MPRINTF("initializing!\n");
-	ahci_dev = get_pcidev_from_classes(CLASS_MASS_STORAGE_CONTROLLER, 6, 0);
+	ahci_dev = get_pcidev_from_classes(CLASS_MASS_STORAGE_CONTROLLER, 6, 1);
 	if(!ahci_dev)
 	{
 		MPRINTF("could not find a valid SATA device!\n");
@@ -81,6 +81,7 @@ int module_init()
 	MPRINTF("ports implemented: %u\n", count_bits32(hba->ports_implemented));
 
 	ahci_probe_ports(count_bits32(hba->ports_implemented));
+	while(1);
 	return 0;
 }
 int module_fini()
