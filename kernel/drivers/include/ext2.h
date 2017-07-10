@@ -176,6 +176,7 @@ typedef struct ex
 #define EXT2_GET_FILE_TYPE(mode) (mode & 0xE000)
 #define EXT2_CALCULATE_SIZE64(ino) (((uint64_t)ino->size_hi << 32) | ino->size_lo)
 
+extern const unsigned int direct_block_count;
 void *ext2_read_block(uint32_t block_index, uint16_t blocks, ext2_fs_t *fs);
 void ext2_read_block_raw(uint32_t block_index, uint16_t blocks, ext2_fs_t *fs, void *buffer);
 void ext2_write_block(uint32_t block_index, uint16_t blocks, ext2_fs_t *fs, void *buffer);

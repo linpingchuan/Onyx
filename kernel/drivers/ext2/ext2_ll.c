@@ -22,6 +22,8 @@
 #include <drivers/rtc.h>
 #include <drivers/ext2.h>
 
+const unsigned int direct_block_count = 12;
+
 void *ext2_read_block(uint32_t block_index, uint16_t blocks, ext2_fs_t *fs)
 {
 	size_t size = blocks * fs->block_size; /* size = nblocks * block size */
@@ -153,4 +155,18 @@ inode_t *ext2_traverse_fs(inode_t *wd, const char *path, ext2_fs_t *fs, char **s
 	}
 	free(original_path);
 	return ino;
+}
+void ext2_register_superblock_changes(ext2_fs_t *fs)
+{
+	blkdev_write((fs->first_sector + 2) * 512, 1024, fs->sb, fs->blkdevice);
+}
+void ext2_register_bgdt_changes(ext2_fs_t *fs)
+{
+	size_t blocks_for_bgdt = (fs->number_of_block_groups * sizeof(block_group_desc_t)) / fs->block_size;
+	if((fs->number_of_block_groups * sizeof(block_group_desc_t)) % fs->block_size)
+		blocks_for_bgdt++;
+	if(fs->block_size == 1024)
+		ext2_write_block(2, (uint16_t)blocks_for_bgdt, fs, fs->bgdt);
+	else
+		ext2_write_block(1, (uint16_t)blocks_for_bgdt, fs, fs->bgdt);
 }
