@@ -281,7 +281,7 @@ inode_t *ext2_follow_symlink(inode_t *inode, ext2_fs_t *fs, inode_t *parent, uin
 	char *path = ext2_read_symlink(inode, fs);
 	if(!path)
 		return NULL;
-	*symlink = strdup(path);
+	if(symlink) *symlink = strdup(path);
 	char *orig_path = path;
 	char *saveptr = NULL;
 	char *inode_data = malloc(EXT2_CALCULATE_SIZE64(parent));
@@ -305,6 +305,7 @@ inode_t *ext2_follow_symlink(inode_t *inode, ext2_fs_t *fs, inode_t *parent, uin
 		ino = ext2_get_inode_from_dir(fs, dir, path, inode_num);
 		if(!ino)
 			return errno = ENOENT, NULL;
+		//assert(EXT2_CALCULATE_SIZE64(ino));
 		inode_data = realloc(inode_data, EXT2_CALCULATE_SIZE64(ino));
 		if(!inode_data)
 			return errno = ENOMEM, NULL;
@@ -315,6 +316,7 @@ inode_t *ext2_follow_symlink(inode_t *inode, ext2_fs_t *fs, inode_t *parent, uin
 		if(path)
 			free(ino);
 	}
+	free(inode_data);
 	return ino;
 }
 vfsnode_t *ext2_open(vfsnode_t *nd, const char *name)
@@ -324,61 +326,15 @@ vfsnode_t *ext2_open(vfsnode_t *nd, const char *name)
 	uint32_t inode_num;
 	size_t node_name_len;
 	inode_t *ino;
-	size_t size;
-	char *inode_data;
-	char *p;
-	dir_entry_t *dir;
-	char *saveptr;
-	char *symlink_path;
-	char *path;
+	char *symlink_path = NULL;
 	vfsnode_t *node;
 	/* Get the inode structure from the number */
 	ino = ext2_get_inode_from_number(fs, inoden);	
-	/* Calculate the size of the directory */
-	size = EXT2_CALCULATE_SIZE64(ino);
-	p = strdup(name);
-	if(!p)
-		return errno = ENOMEM, NULL;
-	inode_data = malloc(size);
-	if(!inode_data)
-	{
-		free(p);
-		return errno = ENOMEM, NULL;
-	}
-	ext2_read_inode(ino, fs, size, 0, inode_data);
-	dir = (dir_entry_t*) inode_data;
-	symlink_path = NULL;
-	/* Get inodes by path segments */
-	path = strtok_r(p, "/", &saveptr);
-	while(path)
-	{
-		free(ino);
-		ino = ext2_get_inode_from_dir(fs, dir, path, &inode_num);
-		if(!ino)
-			return errno = ENOENT, NULL;
-		if(EXT2_GET_FILE_TYPE(ino->mode) == EXT2_INO_TYPE_SYMLINK)
-		{
-			uint32_t num;
-			inode_t *parent_dir = ext2_get_inode_from_dir(fs, dir, ".", &num);
-			ino = ext2_follow_symlink(ino, fs, parent_dir, &inode_num, &symlink_path);
-			if(!ino)
-				return errno = ENOMEM, NULL;
-			free(parent_dir);
-		}
-		inode_data = realloc(inode_data, EXT2_CALCULATE_SIZE64(ino));
-		if(!inode_data)
-			return errno = ENOMEM, NULL;
-		ext2_read_inode(ino, fs, size, 0, inode_data);
-		dir = (dir_entry_t*)inode_data;
-		/* Get the next path segment */
-		path = strtok_r(NULL, "/", &saveptr);
-		/* The symlink path is useless if it's not the last token */
-		if(path)
-		{
-			free(symlink_path);
-			symlink_path = NULL;
-		}
-	}
+	if(!ino)
+		return NULL;
+	ino = ext2_traverse_fs(ino, name, fs, &symlink_path, &inode_num);
+	if(!ino)
+		return NULL;
 	node = malloc(sizeof(vfsnode_t));
 	if(!node)
 	{
@@ -395,7 +351,6 @@ vfsnode_t *ext2_open(vfsnode_t *nd, const char *name)
 	{
 		free(node);
 		free(ino);
-		free(p);
 		return errno = ENOMEM, NULL;
 	}
 	memset(node->name, 0, node_name_len);

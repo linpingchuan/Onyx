@@ -26,14 +26,12 @@ void *ext2_read_block(uint32_t block_index, uint16_t blocks, ext2_fs_t *fs)
 {
 	size_t size = blocks * fs->block_size; /* size = nblocks * block size */
 	void *buff = NULL;
-	/*if((buff = fscache_try_to_find_block(fs->first_sector + ((block_index * fs->block_size) % 512), fs->blkdevice, size)))
-		return buff;*/
+
 	buff = malloc(size); /* Allocate a buffer */
 	if(!buff)
 		return NULL;
 	memset(buff, 0, size);
 	size_t read = blkdev_read(fs->first_sector * 512 + (block_index * fs->block_size), size, buff, fs->blkdevice);
-	//fscache_cache_sectors(buff, fs->blkdevice, fs->first_sector + ((block_index * fs->block_size) % 512), size);
 	if(read == (size_t) -1)
 	{
 		free(buff);
@@ -99,4 +97,61 @@ void ext2_update_inode(inode_t *ino, ext2_fs_t *fs, uint32_t inode)
 	memcpy(inode_block, ino, fs->inode_size);
 	ext2_write_block(bgd->inode_table_addr + block, 1, fs, inode_table);
 	free(inode_table);
+}
+/* Open child file dirname of the directory 'ino', following symlinks */
+inode_t *ext2_open_dir(inode_t *ino, const char *dirname, ext2_fs_t *fs, char **symlink, uint32_t *inode_num)
+{
+	inode_t *inode = NULL;
+	
+	if(EXT2_GET_FILE_TYPE(ino->mode) != EXT2_INO_TYPE_DIR)
+		return errno = ENOTDIR, NULL;
+	dir_entry_t *dirent = malloc(EXT2_CALCULATE_SIZE64(ino));
+	if(!dirent)
+		return errno = ENOMEM, NULL;
+	if(ext2_read_inode(ino, fs, EXT2_CALCULATE_SIZE64(ino), 0, (char*) dirent) != (ssize_t) EXT2_CALCULATE_SIZE64(ino))
+	{
+		free(dirent);
+		return errno = EIO, NULL;
+	}
+	inode = ext2_get_inode_from_dir(fs, dirent, (char*) dirname, inode_num);
+	if(!inode)
+	{
+		free(dirent);
+		return errno = ENOENT, NULL;
+	}
+	if(EXT2_GET_FILE_TYPE(inode->mode) == EXT2_INO_TYPE_SYMLINK)
+	{
+		inode = ext2_follow_symlink(inode, fs, ino, inode_num, symlink);
+		if(!inode)
+		{
+			free(dirent);
+			return NULL;
+		}
+	}
+	free(dirent);
+
+	return inode;
+}
+inode_t *ext2_traverse_fs(inode_t *wd, const char *path, ext2_fs_t *fs, char **symlink_name, uint32_t *inode_num)
+{
+	char *saveptr;
+	char *p;
+	char *original_path;
+	inode_t *ino = wd;
+	/* Create a dup of the string */
+	original_path = p = strdup(path);
+	if(!p)
+		return NULL;
+	/* and tokenize it */
+	p = strtok_r(p, "/", &saveptr);
+
+	for(; p; p = strtok_r(NULL, "/", &saveptr))
+	{
+		ino = ext2_open_dir(ino, (const char*) p, fs, symlink_name, inode_num);
+		if(!ino)
+			return NULL;
+		printk("Found!\n");
+	}
+	free(original_path);
+	return ino;
 }

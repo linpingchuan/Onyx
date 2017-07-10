@@ -194,4 +194,7 @@ int ext2_add_block_to_inode(inode_t *inode, uint32_t block, uint32_t block_index
 void ext2_set_inode_size(inode_t *inode, size_t size);
 void ext2_update_inode(inode_t *ino, ext2_fs_t *fs, uint32_t inode);
 char *ext2_read_symlink(inode_t *inode, ext2_fs_t *fs);
+inode_t *ext2_traverse_fs(inode_t *wd, const char *path, ext2_fs_t *fs, char **symlink_name, uint32_t *inode_num);
+inode_t *ext2_get_inode_from_dir(ext2_fs_t *fs, dir_entry_t *dirent, char *name, uint32_t *inode_number);
+inode_t *ext2_follow_symlink(inode_t *inode, ext2_fs_t *fs, inode_t *parent, uint32_t *inode_num, char **symlink);
 #endif
