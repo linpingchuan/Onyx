@@ -300,6 +300,7 @@ void* paging_map_phys_to_virt(uint64_t virt, uint64_t phys, uint64_t prot)
 		pml3 = (PML3*)__alloc_page(PAGE_AREA_HIGH_MEM);
 		if(!pml3)
 			return NULL;
+		printf("New pml3: %p\n", pml3);
 		memset((void*)((uint64_t)pml3 + PHYS_BASE), 0, sizeof(PML3));
 		*entry = make_pml4e((uint64_t)pml3, 0, 0, 0, user ? 1 : 0, 1, 1);
 	}
@@ -312,8 +313,9 @@ void* paging_map_phys_to_virt(uint64_t virt, uint64_t phys, uint64_t prot)
 		pml2 = (PML2*)__alloc_page(PAGE_AREA_HIGH_MEM);
 		if(!pml2 )
 			return NULL;
+		printf("New pml2: %p\n", pml2);
 		memset((void*)((uint64_t)pml2 + PHYS_BASE), 0, sizeof(PML2));
-		*entry = make_pml3e( (uint64_t)pml2, 0, 0, 0, 0, 0, user ? 1 : 0, 1, 1);
+		*entry = make_pml3e((uint64_t)pml2, 0, 0, 0, 0, 0, user ? 1 : 0, 1, 1);
 	}
 	pml2 = (PML2*)((uint64_t)pml2 + PHYS_BASE);
 	entry = &pml2->entries[decAddr.pd];
@@ -324,12 +326,14 @@ void* paging_map_phys_to_virt(uint64_t virt, uint64_t phys, uint64_t prot)
 		pml1 = (PML1*)__alloc_page(PAGE_AREA_HIGH_MEM);
 		if(!pml1)
 			return NULL;
+		printf("New pml1: %p\n", pml1);
 		memset((void*)((uint64_t)pml1 + PHYS_BASE), 0, sizeof(PML1));
-		*entry = make_pml2e( (uint64_t)pml1, 0, 0, (prot & 2) ? 1 : 0, 0, 0, (prot & 0x80) ? 1 : 0, 1, 1);
+		*entry = make_pml2e((uint64_t)pml1, 0, 0, (prot & 2) ? 1 : 0, 0, 0, (prot & 0x80) ? 1 : 0, 1, 1);
 	}
 	pml1 = (PML1*)((uint64_t)pml1 + PHYS_BASE);
 	entry = &pml1->entries[decAddr.pt];
-	*entry = make_pml1e( phys, (prot & 4) ? 1 : 0, 0, (prot & 0x2) ? 1 : 0, 0, 0, (prot & 0x80) ? 1 : 0, (prot & 1) ? 1 : 0, 1);
+	*entry = make_pml1e(phys, (prot & 4) ? 1 : 0, 0, (prot & 0x2) ? 1 : 0, 0, 0, (prot & 0x80) ? 1 : 0, (prot & 1) ? 1 : 0, 1);
+	__native_tlb_invalidate_page((void*) virt);
 	return (void*) virt;
 }
 _Bool pml_is_empty(void *_pml)

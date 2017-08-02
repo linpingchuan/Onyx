@@ -1,6 +1,10 @@
 #!/bin/sh
 SYSTEM_HEADER_PROJECTS="libc libdrm kernel"
 PROJECTS="libc libdrm kernel"
+if [ "$BOOT_PROTOCOL" = "uefi" ]
+then
+PROJECTS="$PROJECTS efibootldr"
+fi
 SOURCE_PACKAGES="musl libunwind init games ld dhcpcd"
 
 export MAKE=${MAKE:-make}

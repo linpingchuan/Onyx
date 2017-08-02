@@ -64,11 +64,12 @@
  * included after including all other host environmental definitions, in
  * order to override the definitions.
  */
+#ifndef __onyx__
 #elif defined(_AED_EFI) || defined(_GNU_EFI) || defined(_EDK2_EFI)
 #include "acefiex.h"
 
 #endif
-
+#endif
 #if defined(__GNUC__) && !defined(__INTEL_COMPILER)
 #include "acgccex.h"
 

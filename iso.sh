@@ -26,6 +26,10 @@ mkdir -p $ROOTDIR/sysroot/lib
 cp -rv $ROOTDIR/sysroot/usr/lib $ROOTDIR/sysroot/
 tar -cvf $ROOTDIR/isodir/boot/initrd.tar sysroot
 rm -rf sysroot/lib
+if [ "$BOOT_PROTOCOL" = "uefi" ]
+then
+scripts/make_uefi_iso.sh
+else
 echo "Compressing kernel and initrd images"
 xz -9 -e -f isodir/boot/vmonyx
 xz -9 -e -f isodir/boot/initrd.tar
@@ -51,5 +55,5 @@ menuentry "Onyx" {
 	boot
 }
 EOF
-#grub2-file --is-x86-multiboot2 kernel/vmonyx-0.1-gen64
-grub2-mkrescue -o Onyx.iso isodir # Change this acording to your distro/OS.
+grub-mkrescue -o Onyx.iso isodir
+fi

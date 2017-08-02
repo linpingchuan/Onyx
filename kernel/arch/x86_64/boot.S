@@ -31,6 +31,79 @@ hdr_start:
 	dd 8
 hdr_end:
 [SECTION .boot]
+align 4096
+global pt_mappings
+pt_mappings:
+	resb 4096
+bits 64
+setup_paging:
+	mov eax, pdpt
+	or eax, 3
+	or eax, 1 << 2
+	mov [pml4], eax
+	mov [pml4 + 0xFF8], eax
+	mov eax, pdlower
+	or eax, 3
+	or eax, 1 << 8
+	or eax, 1 << 2
+	mov [pdpt], eax
+	mov eax, pd
+	or eax, 3
+	or eax, 1 << 8
+	or eax, 1 << 2
+	mov [pdpt + 0xFF0], eax
+
+	mov dword [pd], 0x000083
+	or dword [pd], 1 << 8
+	mov dword [pd + 8], 0x200083
+	or dword [pd + 8], 1 << 8
+	mov dword [pd + 16], 0x400083
+	or dword [pd + 16], 1 << 8
+	mov dword [pd + 24], pt_mappings
+	or dword [pd + 24], 3
+
+	mov dword [pdlower], 0x000083
+	or dword [pdlower], 1 << 8
+	mov dword [pdlower + 8], 0x200083
+	or dword [pdlower + 8], 1 << 8
+
+	; Load CR3 with PML4
+	mov rax, pml4
+	mov cr3, rax
+	jmp efi_ret
+	; We can't ret here, since we have no valid stack
+setup_efer:
+	mov ecx, 0xC0000080
+	rdmsr
+	or eax, 1 ; enable syscall/sysret
+	or eax, 1 << 8 ; enable long mode
+	or eax, 1 << 11 ; enable NX
+	wrmsr
+	ret
+global efi_entry_point
+extern uefi_main
+efi_entry_point:
+	cli
+	call setup_paging
+efi_ret:
+	mov rax, gdtr3
+	lgdt [rax]
+	mov rbp, 0
+	mov rsp, stack_top
+	call setup_efer
+	mov eax, 0x10
+	mov ds, ax
+	mov ss, ax
+	mov fs, ax
+	mov gs, ax
+	push 0x08
+	push .cont
+	o64 retf
+.cont:
+	call initsse
+	call uefi_main
+	call kernel_main
+bits 32
 [GLOBAL EntryPoint]
 EntryPoint:
 	cli
@@ -78,7 +151,7 @@ EntryPoint:
 	mov rax, _start
 	jmp rax
 section .bootstrap_stack, nobits
-align 4
+align 16
 stack_bottom:
 	resb 16384
 stack_top:
@@ -115,7 +188,6 @@ initsse:
 	mov cr0, rax
 	mov rax, cr4
 	or ax, 3 << 9
-	or eax, 1 << 18
 	mov cr4, rax
 	; Use 0x1F80, because it's the default and it looks reasonable
 	push 0x1F80
