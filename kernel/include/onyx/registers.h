@@ -56,5 +56,23 @@ static inline void rdmsr(uint32_t msr, uint32_t *lo, uint32_t *hi)
 
 #include <onyx/x86/msr.h>
 
+#define X86_CR4_VME		(1 << 0)
+#define X86_CR4_PVI		(1 << 1)
+#define X86_CR4_TSD		(1 << 2)
+#define X86_CR4_DE		(1 << 3)
+#define X86_CR4_PSE		(1 << 4)
+#define X86_CR4_PAE		(1 << 5)
+#define X86_CR4_MCE		(1 << 6)
+#define X86_CR4_PGE		(1 << 7)
+#define X86_CR4_PCE		(1 << 8)
+#define X86_CR4_OSFXSR		(1 << 9)
+#define X86_CR4_OSXMMEXCPT	(1 << 10)
+#define X86_CR4_VMXE		(1 << 13)
+#define X86_CR4_SMXE		(1 << 14)
+#define X86_CR4_PCID		(1 << 17)
+#define X86_CR4_OSXSAVE		(1 << 18)
+#define X86_CR4_SMEP		(1 << 20)
+#define X86_CR4_SMAP		(1 << 21)
+
 #endif
 #endif
